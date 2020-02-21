@@ -55,8 +55,8 @@ func main() {
 
 	subreddits := flag.Args()
 	if len(subreddits) == 0 {
-		fmt.Fprintln(os.Stderr, "No subreddits provided. Usage: ")
-		fmt.Fprintf(os.Stderr, "%s [-album-template=string] [-single-template=string] [-skip-duplicates=(true|false)] [-skip-duplicates-in-albums=(true|false)] [-throttle=duration] [-quiet] subreddits...\n", os.Args[0])
+		_, _ = fmt.Fprintln(os.Stderr, "No subreddits provided. Usage: ")
+		_, _ = fmt.Fprintf(os.Stderr, "%s [-album-template=string] [-single-template=string] [-skip-duplicates=(true|false)] [-skip-duplicates-in-albums=(true|false)] [-throttle=duration] [-quiet] subreddits...\n", os.Args[0])
 		flag.PrintDefaults()
 		return
 	}
@@ -134,7 +134,7 @@ func main() {
 	}()
 
 	for submission := range submissions {
-		fetchSubmission(submission)
+		_ = fetchSubmission(submission)
 	}
 	log.Printf("finished")
 }
@@ -165,8 +165,11 @@ func fetchSingleImage(u string, submission Submission) error {
 		return err
 	}
 	defer func() {
-		io.Copy(ioutil.Discard, resp.Body)
-		resp.Body.Close()
+		_, _ = io.Copy(ioutil.Discard, resp.Body)
+		err := resp.Body.Close()
+		if err != nil {
+			log.Printf("error closing response body: %v", err)
+		}
 	}()
 
 	if resp.StatusCode == 404 || (resp.Request.URL.Host == "i.imgur.com" && strings.HasSuffix(resp.Request.URL.Path, "removed.png")) {
@@ -302,8 +305,11 @@ func fetchImgur(submission Submission) error {
 				continue
 			}
 			defer func() {
-				io.Copy(ioutil.Discard, resp.Body)
-				resp.Body.Close()
+				_, _ = io.Copy(ioutil.Discard, resp.Body)
+				err := resp.Body.Close()
+				if err != nil {
+					log.Printf("error closing response body: %v", err)
+				}
 			}()
 
 			if strings.HasSuffix(resp.Request.URL.Path, "removed.png") {

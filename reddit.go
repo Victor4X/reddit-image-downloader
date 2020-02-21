@@ -46,8 +46,11 @@ func (r RedditClient) GetNew(subreddit string, params ListingParams) (Listing, e
 		return Listing{}, err
 	}
 	defer func() {
-		io.Copy(ioutil.Discard, res.Body)
-		res.Body.Close()
+		_, _ = io.Copy(ioutil.Discard, res.Body)
+		err := res.Body.Close()
+		if err != nil {
+			log.Printf("error closing response body: %v", err)
+		}
 	}()
 	body, err := ioutil.ReadAll(res.Body)
 
