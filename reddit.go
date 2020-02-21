@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 
-	//"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
