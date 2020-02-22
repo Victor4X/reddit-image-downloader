@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -11,6 +12,8 @@ import (
 	"net/url"
 	"strconv"
 )
+
+var RateLimited error = errors.New("rate limited")
 
 type RedditClient struct {
 	http *http.Client
@@ -41,18 +44,23 @@ func (r RedditClient) GetNew(subreddit string, params ListingParams) (Listing, e
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", "reddit image downloader")
 
-	res, err := r.http.Do(req)
+	resp, err := r.http.Do(req)
 	if err != nil {
 		return Listing{}, err
 	}
 	defer func() {
-		_, _ = io.Copy(ioutil.Discard, res.Body)
-		err := res.Body.Close()
+		_, _ = io.Copy(ioutil.Discard, resp.Body)
+		err := resp.Body.Close()
 		if err != nil {
 			log.Printf("error closing response body: %v", err)
 		}
 	}()
-	body, err := ioutil.ReadAll(res.Body)
+
+	if resp.StatusCode == 429 {
+		return Listing{}, RateLimited
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
 
 	if err != nil {
 		return Listing{}, err

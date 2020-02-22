@@ -22,18 +22,18 @@ func (i ImgurClient) GetAlbum(id string) (Album, error) {
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", "reddit image downloader")
 
-	res, err := i.http.Do(req)
+	resp, err := i.http.Do(req)
 	if err != nil {
 		return Album{}, err
 	}
 	defer func() {
-		_, _ = io.Copy(ioutil.Discard, res.Body)
-		err := res.Body.Close()
+		_, _ = io.Copy(ioutil.Discard, resp.Body)
+		err := resp.Body.Close()
 		if err != nil {
 			log.Printf("error closing response body: %v", err)
 		}
 	}()
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := ioutil.ReadAll(resp.Body)
 
 	if err != nil {
 		return Album{}, err
