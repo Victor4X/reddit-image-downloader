@@ -172,4 +172,5 @@ type SubmissionData struct {
 	Permalink  string
 	Subreddit  string
 	Nsfw       bool `json:"over_18"`
+	Score      int  `json:"score"`
 }

@@ -53,6 +53,7 @@ func main() {
 	throttle := flag.Duration("throttle", 2*time.Second, "wait at least this long between requests to the reddit api")
 	pageSize := flag.Uint("page-size", 25, "reddit api listing page size")
 	search := flag.String("search", "", "search string")
+	minScore := flag.Int("min-score", 0, "ignore submissions below this score")
 	flag.BoolVar(&quiet, "quiet", false, "don't print every submission (errors and skips are still printed)")
 	flag.BoolVar(&overwrite, "overwrite", false, "overwrite existing files")
 	flag.BoolVar(&nsfw, "nsfw", false, "include nsfw submissions")
@@ -172,6 +173,8 @@ func main() {
 	for submission := range submissions {
 		if submission.Nsfw && !nsfw {
 			log.Printf("skipping NSFW: %s (%s)", submission.Url, submission.Permalink)
+		} else if submission.Score < *minScore {
+			log.Printf("skipping score below %d (has %d): %s (%s)", minScore, submission.Score, submission.Url, submission.Permalink)
 		} else {
 			_ = fetchSubmission(submission)
 		}
