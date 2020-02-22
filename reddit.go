@@ -19,7 +19,7 @@ type RedditClient struct {
 	http *http.Client
 }
 
-func encodeListingParams(params ListingParams) string {
+func encodeNewListingParams(params NewListingParams) string {
 	q := url.Values{}
 	q.Add("raw_json", "1")
 	if params.Limit > 0 {
@@ -34,8 +34,65 @@ func encodeListingParams(params ListingParams) string {
 	return q.Encode()
 }
 
-func (r RedditClient) GetNew(subreddit string, params ListingParams) (Listing, error) {
-	urlParams := encodeListingParams(params)
+func encodeSearchListingParams(params SearchListingParams) string {
+	q := url.Values{}
+	q.Add("raw_json", "1")
+	q.Add("restrict_sr", "on")
+	q.Add("sort", "new")
+	if params.Limit > 0 {
+		q.Add("limit", strconv.Itoa(params.Limit))
+	}
+	if params.Before != "" {
+		q.Add("before", params.Before)
+	}
+	if params.After != "" {
+		q.Add("after", params.After)
+	}
+	if params.Search != "" {
+		q.Add("q", params.Search)
+	}
+
+	return q.Encode()
+}
+
+func (r RedditClient) GetSearch(subreddit string, params SearchListingParams) (Listing, error) {
+	urlParams := encodeSearchListingParams(params)
+	u := fmt.Sprintf(`https://www.reddit.com/r/%s/search.json?%s`, subreddit, urlParams)
+	req, err := http.NewRequest("GET", u, nil)
+	if err != nil {
+		return Listing{}, err
+	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", "reddit image downloader")
+
+	resp, err := r.http.Do(req)
+	if err != nil {
+		return Listing{}, err
+	}
+	defer func() {
+		_, _ = io.Copy(ioutil.Discard, resp.Body)
+		err := resp.Body.Close()
+		if err != nil {
+			log.Printf("error closing response body: %v", err)
+		}
+	}()
+
+	if resp.StatusCode == 429 {
+		return Listing{}, RateLimited
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		return Listing{}, err
+	}
+	var listing Listing
+	err = json.Unmarshal(body, &listing)
+	return listing, err
+}
+
+func (r RedditClient) GetNew(subreddit string, params NewListingParams) (Listing, error) {
+	urlParams := encodeNewListingParams(params)
 	u := fmt.Sprintf(`https://www.reddit.com/r/%s/new.json?%s`, subreddit, urlParams)
 	req, err := http.NewRequest("GET", u, nil)
 	if err != nil {
@@ -70,10 +127,17 @@ func (r RedditClient) GetNew(subreddit string, params ListingParams) (Listing, e
 	return listing, err
 }
 
-type ListingParams struct {
+type NewListingParams struct {
 	Limit  int
 	Before string
 	After  string
+}
+
+type SearchListingParams struct {
+	Limit  int
+	Before string
+	After  string
+	Search string
 }
 
 type Listing struct {

@@ -50,6 +50,7 @@ func main() {
 	flag.BoolVar(&skipDuplicatesInAlbums, "skip-duplicates-in-albums", false, "skip duplicate images within imgur albums")
 	throttle := flag.Duration("throttle", 2*time.Second, "wait at least this long between requests to the reddit api")
 	pageSize := flag.Uint("page-size", 25, "reddit api listing page size")
+	search := flag.String("search", "", "search string")
 	flag.BoolVar(&quiet, "quiet", false, "don't print every submission (errors and skips are still printed)")
 	flag.Parse()
 
@@ -59,6 +60,10 @@ func main() {
 		_, _ = fmt.Fprintf(os.Stderr, "%s [-album-template=string] [-single-template=string] [-skip-duplicates=(true|false)] [-skip-duplicates-in-albums=(true|false)] [-throttle=duration] [-quiet] subreddits...\n", os.Args[0])
 		flag.PrintDefaults()
 		return
+	}
+
+	if *search == "" {
+		search = nil
 	}
 
 	throttler = newImmediateTicker(*throttle)
@@ -104,14 +109,38 @@ func main() {
 					allCompleted = false
 					<-throttler.C
 					log.Printf("fetching page %d on r/%s", page, sub)
-					listing, err := redditClient.GetNew(sub, ListingParams{
-						After: after[sub],
-						Limit: int(*pageSize),
-					})
-					if err != nil {
-						log.Fatalf("error: %v", err)
-						// TODO: retry? skip?
+
+					var listing Listing
+					var err error
+
+					var rateLimitDuration time.Duration = 0
+					for {
+						if rateLimitDuration > 0 {
+							time.Sleep(rateLimitDuration)
+						}
+						if search != nil {
+							listing, err = redditClient.GetSearch(sub, SearchListingParams{
+								After:  after[sub],
+								Limit:  int(*pageSize),
+								Search: *search,
+							})
+						} else {
+							listing, err = redditClient.GetNew(sub, NewListingParams{
+								After: after[sub],
+								Limit: int(*pageSize),
+							})
+						}
+						if err == nil {
+							break
+						} else if err == RateLimited {
+							rateLimitDuration += *throttle
+							log.Printf("rate limit reached, retrying after %s", rateLimitDuration.String())
+						} else {
+							log.Printf("fetching failed: %v, retrying", err)
+							<-throttler.C
+						}
 					}
+
 					for _, submission := range listing.Children {
 						submissions <- submission
 					}
