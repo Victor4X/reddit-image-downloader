@@ -36,6 +36,7 @@ var knownUrls = make(map[string]struct{})
 var knownHashes = make(map[string]struct{})
 
 var quiet bool
+var overwrite bool
 
 var throttler *time.Ticker
 
@@ -52,6 +53,7 @@ func main() {
 	pageSize := flag.Uint("page-size", 25, "reddit api listing page size")
 	search := flag.String("search", "", "search string")
 	flag.BoolVar(&quiet, "quiet", false, "don't print every submission (errors and skips are still printed)")
+	flag.BoolVar(&overwrite, "overwrite", false, "overwrite existing files")
 	flag.Parse()
 
 	subreddits := flag.Args()
@@ -283,6 +285,15 @@ func fetchSingleImage(u string, submission Submission) error {
 	if !filepath.IsAbs(p) {
 		p = outputRoot + "/" + p
 	}
+
+	if !overwrite {
+		if _, err := os.Stat(p); err == nil || !os.IsNotExist(err) {
+			// exists or some error except "not exist"
+			log.Printf("fetching %s (%s) => file exists, overwrite disabled", u, submission.Permalink)
+			return nil
+		}
+	}
+
 	dir := filepath.Dir(p)
 	_ = os.MkdirAll(dir, os.ModeDir)
 	err = ioutil.WriteFile(p, data, os.ModePerm)
@@ -403,6 +414,15 @@ func fetchImgur(submission Submission) error {
 			if !filepath.IsAbs(p) {
 				p = outputRoot + "/" + p
 			}
+
+			if !overwrite {
+				if _, err := os.Stat(p); err != nil {
+					// exists or some error
+					log.Printf("fetching %s (%s) => file exists, overwrite disabled", u, submission.Permalink)
+					continue
+				}
+			}
+
 			dir := filepath.Dir(p)
 			_ = os.MkdirAll(dir, os.ModeDir)
 			err = ioutil.WriteFile(p, data, os.ModePerm)
