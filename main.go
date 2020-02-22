@@ -57,13 +57,19 @@ func main() {
 	flag.BoolVar(&quiet, "quiet", false, "don't print every submission (errors and skips are still printed)")
 	flag.BoolVar(&overwrite, "overwrite", false, "overwrite existing files")
 	flag.BoolVar(&nsfw, "nsfw", false, "include nsfw submissions")
+
+	flag.Usage = func() {
+		_, _ = fmt.Fprintf(os.Stderr, "Usage: %s [options] subreddits...\n", os.Args[0])
+		_, _ = fmt.Fprintln(os.Stderr, "Available options: ")
+		flag.PrintDefaults()
+	}
+
 	flag.Parse()
 
 	subreddits := flag.Args()
 	if len(subreddits) == 0 {
-		_, _ = fmt.Fprintln(os.Stderr, "No subreddits provided. Usage: ")
-		_, _ = fmt.Fprintf(os.Stderr, "%s [-album-template=string] [-single-template=string] [-skip-duplicates=(true|false)] [-skip-duplicates-in-albums=(true|false)] [-throttle=duration] [-quiet] subreddits...\n", os.Args[0])
-		flag.PrintDefaults()
+		_, _ = fmt.Fprintln(os.Stderr, "No subreddits provided.")
+		flag.Usage()
 		return
 	}
 
