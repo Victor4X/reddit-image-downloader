@@ -146,7 +146,10 @@ func main() {
 					}
 
 					for _, submission := range listing.Children {
-						submissions <- submission
+						// ignore meta submissions
+						if !submission.IsMeta {
+							submissions <- submission
+						}
 					}
 
 					if listing.After == "" {
