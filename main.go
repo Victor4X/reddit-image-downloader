@@ -180,7 +180,7 @@ func main() {
 		if submission.Nsfw && !nsfw {
 			log.Printf("skipping NSFW: %s (%s)", submission.Url, submission.Permalink)
 		} else if submission.Score < *minScore {
-			log.Printf("skipping score below %d (has %d): %s (%s)", minScore, submission.Score, submission.Url, submission.Permalink)
+			log.Printf("skipping score below %d (has %d): %s (%s)", *minScore, submission.Score, submission.Url, submission.Permalink)
 		} else {
 			_ = fetchSubmission(submission)
 		}
