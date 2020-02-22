@@ -171,4 +171,5 @@ type SubmissionData struct {
 	Url        string
 	Permalink  string
 	Subreddit  string
+	Nsfw       bool `json:"over_18"`
 }

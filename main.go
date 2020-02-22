@@ -37,6 +37,7 @@ var knownHashes = make(map[string]struct{})
 
 var quiet bool
 var overwrite bool
+var nsfw bool
 
 var throttler *time.Ticker
 
@@ -54,6 +55,7 @@ func main() {
 	search := flag.String("search", "", "search string")
 	flag.BoolVar(&quiet, "quiet", false, "don't print every submission (errors and skips are still printed)")
 	flag.BoolVar(&overwrite, "overwrite", false, "overwrite existing files")
+	flag.BoolVar(&nsfw, "nsfw", false, "include nsfw submissions")
 	flag.Parse()
 
 	subreddits := flag.Args()
@@ -165,7 +167,11 @@ func main() {
 	}()
 
 	for submission := range submissions {
-		_ = fetchSubmission(submission)
+		if submission.Nsfw && !nsfw {
+			log.Printf("skipping NSFW: %s (%s)", submission.Url, submission.Permalink)
+		} else {
+			_ = fetchSubmission(submission)
+		}
 	}
 	log.Printf("finished")
 }
