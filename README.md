@@ -21,14 +21,25 @@ $ go build .
 
 ## Usage
 ```
-Usage: reddit-image-downloader [options] subreddits...
 Available options:
   -album-template string
         template for image paths in albums, use go template syntax (default "{{.Submission.Subreddit}}/{{.Timestamp}}-{{.Submission.Id}}-{{.Submission.Title | slugify}}/{{.Num}}-{{.Image.Hash}}{{.Ext}}")
+  -max-height uint
+        maximum height (0 = off)
+  -max-width uint
+        maximum width (0 = off)
+  -min-height uint
+        minimum height
   -min-score int
         ignore submissions below this score
+  -min-width uint
+        minimum width
+  -no-albums
+        don't download albums
   -nsfw
         include nsfw submissions
+  -orientation string
+        image orientation (landscape/portrait/square/all), separate multiple values with comma (default "all")
   -out string
         root output directory (default ".")
   -overwrite
