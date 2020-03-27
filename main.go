@@ -5,10 +5,6 @@ import (
 	"crypto/sha256"
 	"flag"
 	"fmt"
-	"github.com/gosimple/slug"
-	_ "golang.org/x/image/bmp"
-	_ "golang.org/x/image/tiff"
-	_ "golang.org/x/image/webp"
 	"image"
 	_ "image/gif"
 	_ "image/jpeg"
@@ -27,6 +23,11 @@ import (
 	"text/template"
 	"time"
 	"unicode"
+
+	"github.com/gosimple/slug"
+	_ "golang.org/x/image/bmp"
+	_ "golang.org/x/image/tiff"
+	_ "golang.org/x/image/webp"
 )
 
 var singleTemplate *template.Template
@@ -41,6 +42,7 @@ var imgurClient ImgurClient
 var skipDuplicates bool
 var skipDuplicatesInAlbums bool
 var noAlbums bool
+var maxPages bool
 
 var knownUrls = make(map[string]struct{})
 var knownHashes = make(map[string]struct{})
@@ -53,6 +55,7 @@ var minWidth int
 var maxWidth int
 var minHeight int
 var maxHeight int
+var maxAspect float64
 
 var noPortrait bool
 var noLandscape bool
@@ -79,12 +82,14 @@ func main() {
 	flag.BoolVar(&skipDuplicatesInAlbums, "skip-duplicates-in-albums", false, "skip duplicate images within imgur albums")
 	throttle := flag.Duration("throttle", 2*time.Second, "wait at least this long between requests to the reddit api")
 	pageSize := flag.Uint("page-size", 25, "reddit api listing page size")
+	maxPages := flag.Uint("pages", 5, "maximum number of pages to download (default 5) (0 = off)")
 	search := flag.String("search", "", "search string")
 	orientation := flag.String("orientation", "all", "image orientation (landscape|portrait|square|all), separate multiple values with comma")
 	minWidthOpt := flag.Uint("min-width", 0, "minimum width")
 	minHeightOpt := flag.Uint("min-height", 0, "minimum height")
 	maxWidthOpt := flag.Uint("max-width", 0, "maximum width (0 = off)")
 	maxHeightOpt := flag.Uint("max-height", 0, "maximum height (0 = off)")
+	maxAspectOpt := flag.Float64("max-aspect-ratio", 0.0, "maximum aspect ratio (height / width) (0 = off)")
 	minScore := flag.Int("min-score", 0, "ignore submissions below this score")
 	flag.BoolVar(&quiet, "quiet", false, "don't print every submission (errors and skips are still printed)")
 	flag.BoolVar(&overwrite, "overwrite", false, "overwrite existing files")
@@ -126,6 +131,7 @@ func main() {
 	maxWidth = int(*maxWidthOpt)
 	minHeight = int(*minHeightOpt)
 	maxHeight = int(*maxHeightOpt)
+	maxAspect = *maxAspectOpt
 
 	orientations := strings.Split(*orientation, ",")
 
@@ -166,7 +172,7 @@ func main() {
 		}
 	}
 
-	if len(allowTypes) > 0 || noLandscape || noPortrait || minWidth > 0 || minHeight > 0 || maxWidth > 0 || maxHeight > 0 {
+	if len(allowTypes) > 0 || noLandscape || noPortrait || minWidth > 0 || minHeight > 0 || maxWidth > 0 || maxHeight > 0 || maxAspect > 0 {
 		parseImages = true
 	}
 
@@ -263,7 +269,11 @@ func main() {
 					}
 				}
 			}
-			page += 1
+			page++
+
+			if int(*maxPages) > 0 && page > int(*maxPages) {
+				allCompleted = true
+			}
 
 			if allCompleted {
 				break
@@ -649,7 +659,7 @@ func checkImage(data []byte) (bool, string) {
 	if err != nil {
 		return false, "failed to parse image"
 	}
-	if _, ok := allowTypes[imgType]; !ok {
+	if _, ok := allowTypes[imgType]; !ok && len(allowTypes) > 0 {
 		return false, fmt.Sprintf("type %s not allowed", imgType)
 	}
 	if noPortrait && cfg.Height > cfg.Width {
@@ -672,6 +682,9 @@ func checkImage(data []byte) (bool, string) {
 	}
 	if maxHeight > 0 && cfg.Height > maxHeight {
 		return false, fmt.Sprintf("height > %d", maxHeight)
+	}
+	if maxAspect > 0.0 && float64(cfg.Height)/float64(cfg.Width) > maxAspect {
+		return false, fmt.Sprintf("aspect ratio %.2f > %.2f", float64(cfg.Height)/float64(cfg.Width), maxAspect)
 	}
 	return true, ""
 }
