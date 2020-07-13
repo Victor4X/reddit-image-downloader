@@ -1,3 +1,5 @@
+# Fork of https://github.com/sammax/reddit-image-downloader
+
 # reddit-image-downloader
 
 Downloads all (available) images from given subreddits. 
