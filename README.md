@@ -1,4 +1,4 @@
-# Fork of https://github.com/sammax/reddit-image-downloader
+Fork of https://github.com/sammax/reddit-image-downloader
 
 # reddit-image-downloader
 
@@ -32,10 +32,12 @@ Available options:
         maximum width (0 = off)
   -min-height uint
         minimum height
-  -min-score int
-        ignore submissions below this score
   -min-width uint
         minimum width
+  -max-aspect-ratio
+        maximum aspect ratio (height / width) (0 = off)
+  -min-score int
+        ignore submissions below this score
   -no-albums
         don't download albums
   -nsfw
@@ -48,6 +50,8 @@ Available options:
         overwrite existing files
   -page-size uint
         reddit api listing page size (default 25)
+  -pages
+        maximum number of pages to download (default 5) (0 = off)
   -quiet
         don't print every submission (errors and skips are still printed)
   -search string
